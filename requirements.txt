@@ -2,4 +2,9 @@ livekit-agents
 livekit-plugins-google
 livekit-plugins-silero
 livekit-plugins-deepgram
+livekit-plugins-cartesia
 python-dotenv
+twilio
+requests
+phonenumbers
+flask
