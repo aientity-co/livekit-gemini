@@ -1,4 +1,7 @@
 livekit-agents
 livekit-plugins-google
+livekit-plugins-deepgram>=0.6.17
 livekit-plugins-silero
+livekit-plugins-cartesia
+livekit-plugins-turn-detector>=0.4.0
 python-dotenv
