@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import sys
 from dotenv import load_dotenv
 from livekit.agents import (
     Agent,
@@ -10,6 +11,7 @@ from livekit.agents import (
     function_tool
 )
 from livekit.plugins import deepgram, google, cartesia, silero
+from system_prompt import system_prompt
 
 load_dotenv()
 logger = logging.getLogger("telephony-agent")
@@ -30,22 +32,7 @@ async def entrypoint(ctx: JobContext):
     
     # Initialize the conversational agent
     agent = Agent(
-        instructions="""You are a friendly and helpful AI assistant answering phone calls. 
-        
-        Your personality:
-        - Professional yet warm and approachable
-        - Speak clearly and at a moderate pace for phone calls
-        - Keep responses concise but complete
-        - Ask clarifying questions when needed
-        
-        Your capabilities:
-        - Answer questions on a wide range of topics
-        - Provide weather information when asked
-        - Tell the current time
-        - Have natural conversations
-        
-        Always identify yourself as an AI assistant when asked.
-        Keep responses conversational and under 30 seconds for phone clarity.""",
+        instructions=system_prompt,
         tools=[get_current_time]
     )
     
