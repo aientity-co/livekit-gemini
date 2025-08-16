@@ -1,60 +1,50 @@
-import logging
-import os
-from system_prompt import system_prompt
-
 from dotenv import load_dotenv
-_ = load_dotenv(override=True)
 
-logger = logging.getLogger("dlai-agent-gemini")
-logger.setLevel(logging.INFO)
+from livekit import agents
+from livekit.agents import AgentSession, Agent, RoomInputOptions
+from livekit.plugins import (
+    google,
+    cartesia,
+    deepgram,
+    noise_cancellation,
+    silero,
+)
+from livekit.plugins.turn_detector.english import EnglishModel # from livekit.plugins.turn_detector.multilingual import MultilingualModel for multiple languages
 
-from livekit.agents import Agent, AgentSession, JobContext
-from livekit.plugins import google, silero, deepgram
+load_dotenv()
 
 
 class Assistant(Agent):
     def __init__(self) -> None:
-        llm = google.LLM(model="gemini-2.5-flash")
-
-        dg_api_key = os.getenv("DEEPGRAM_API_KEY")
-        if not dg_api_key:
-            raise RuntimeError("DEEPGRAM_API_KEY is required for Deepgram STT/TTS")
-
-        # Deepgram Nova-3 for STT
-        stt = deepgram.STT(api_key=dg_api_key, model="nova-3")
-
-        # Deepgram TTS with Aura-2 Asteria EN voice, 24kHz linear16
-        tts = deepgram.TTS(
-            api_key=dg_api_key,
-            model="aura-2-asteria-en",
-            sample_rate=24000,
-            encoding="linear16",
-        )
-
-        vad = silero.VAD.load()
-
-        super().__init__(
-            instructions=system_prompt,
-            stt=stt,
-            llm=llm,
-            tts=tts,
-            vad=vad,
-        )
+        super().__init__(instructions="You are a helpful voice AI assistant.")
 
 
-async def entrypoint(ctx: JobContext):
-    await ctx.connect()
-
-    session = AgentSession()
+async def entrypoint(ctx: agents.JobContext):
+    session = AgentSession(
+        stt=deepgram.STT(model="nova-3", language="en"),  # language = "multi" for multiple languages
+        llm=google.LLM(model="gemini-2.5-flash"),
+        tts=cartesia.TTS(model="sonic-2", voice="f786b574-daa5-4673-aa0c-cbe3e8534c02"),
+        vad=silero.VAD.load(),
+        turn_detection=EnglishModel(), # or turn_detection=MultilingualModel() for multiple languages, also swap the above
+    )
 
     await session.start(
         room=ctx.room,
         agent=Assistant(),
+        room_input_options=RoomInputOptions(
+            # LiveKit Cloud enhanced noise cancellation
+            # - If self-hosting, omit this parameter
+            # - For telephony applications, use `BVCTelephony` for best results
+            noise_cancellation=noise_cancellation.BVC(), 
+        ),
+    )
+
+    await ctx.connect()
+
+    await session.generate_reply(
+        instructions="Greet the user and offer your assistance."
     )
 
 
-# Run directly: relies on LIVEKIT_* env vars for server connection
 if __name__ == "__main__":
-    from livekit.agents import WorkerOptions, cli
-
-    cli.run_app(WorkerOptions(entrypoint_fnc=entrypoint))
+    agents.cli.run_app(agents.WorkerOptions(entrypoint_fnc=entrypoint))
