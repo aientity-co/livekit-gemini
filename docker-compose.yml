@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  livekit-server:
+    image: livekit/livekit-server:latest
+    ports:
+      - "7880:7880"
+      - "7881:7881"
+      - "7882:7882/udp"
+    command: --dev --bind 0.0.0.0
+    environment:
+      - LIVEKIT_KEYS=devkey: secret
+    restart: unless-stopped
+
+  voice-agent-api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - LIVEKIT_URL=http://livekit-server:7880
+      - LIVEKIT_API_KEY=devkey
+      - LIVEKIT_API_SECRET=secret
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/keys/service-account.json
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - SIP_OUTBOUND_TRUNK_ID=${SIP_OUTBOUND_TRUNK_ID}
+      - DEEPGRAM_API_KEY=${DEEPGRAM_API_KEY}
+      - CARTESIA_API_KEY=${CARTESIA_API_KEY}
+      - CARTESIA_VOICE_ID=${CARTESIA_VOICE_ID}
+      - PORT=8000
+    volumes:
+      - ./keys:/app/keys:ro
+    depends_on:
+      - livekit-server
+    restart: unless-stopped
+
+  voice-agent-worker:
+    build: .
+    command: python agent.py
+    environment:
+      - LIVEKIT_URL=http://livekit-server:7880
+      - LIVEKIT_API_KEY=devkey
+      - LIVEKIT_API_SECRET=secret
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/keys/service-account.json
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - SIP_OUTBOUND_TRUNK_ID=${SIP_OUTBOUND_TRUNK_ID}
+      - DEEPGRAM_API_KEY=${DEEPGRAM_API_KEY}
+      - CARTESIA_API_KEY=${CARTESIA_API_KEY}
+      - CARTESIA_VOICE_ID=${CARTESIA_VOICE_ID}
+    volumes:
+      - ./keys:/app/keys:ro
+    depends_on:
+      - livekit-server
+    restart: unless-stopped
