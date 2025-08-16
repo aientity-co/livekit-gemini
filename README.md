@@ -2,10 +2,12 @@
 
 Minimal agent that uses LiveKit Agents with Google Gemini 1.5, Google STT/TTS, and Silero VAD.
 
-### Prerequisites
+## Prerequisites
 - Python 3.10–3.12
 - Docker (optional, for running LiveKit server)
 - livekit-cli (optional, for console operations)
+
+## Setup
 
 ### 1) Create and activate a virtual environment
 ```bash
@@ -16,7 +18,7 @@ pip install -r requirements.txt
 ```
 
 ### 2) Configure environment
-This project loads environment variables from a `.env` file.
+This project loads environment variables from a `.env` file (or `.env.local` for development).
 
 Create `.env` in the project root with the following keys:
 ```bash
@@ -31,6 +33,14 @@ GOOGLE_APPLICATION_CREDENTIALS=/absolute/path/to/your-service-account.json
 
 # Optional: API key for Gemini
 GOOGLE_API_KEY=your-gemini-api-key
+
+# Optional: For outbound calling (SIP trunk ID from LiveKit dashboard)
+SIP_OUTBOUND_TRUNK_ID=your-sip-trunk-id
+
+# Optional: Deepgram/Cartesia keys for alternative STT/TTS
+DEEPGRAM_API_KEY=your-deepgram-key
+CARTESIA_API_KEY=your-cartesia-key
+CARTESIA_VOICE_ID=your-cartesia-voice-id
 ```
 
 You can generate the Google service account and enable required APIs using the helper script:
@@ -69,19 +79,31 @@ docker run -d --name livekit \
 
 Default ports to open: 7880 (HTTP API), 7881/TCP (ICE/TURN), 7882/UDP (RTP).
 
-### 4) Run the agent
-The entrypoint is in `lesson4_gemini.py` and relies on the environment variables above.
+## Running the Agent
+
+### Basic Voice Agent (livekit_gemini.py)
+The entrypoint is in `livekit_gemini.py` and relies on the environment variables above.
 
 Common commands:
 ```bash
 # Start in dev mode
-python3 lesson4_gemini.py dev
+python3 livekit_gemini.py dev
 
 # Connect the agent to a specific room
-python3 lesson4_gemini.py connect --room test-voice
+python3 livekit_gemini.py connect --room test-voice
 ```
 
-### 5) Optional: Console operations with livekit-cli
+### Outbound Caller Agent (agent.py)
+This script implements an outbound calling agent using SIP for scheduling confirmations.
+
+```bash
+python3 agent.py
+```
+
+- Ensure `SIP_OUTBOUND_TRUNK_ID` is set in `.env`.
+- The agent dials a phone number provided via job metadata and confirms appointments.
+
+## Optional: Console operations with livekit-cli
 Set these env vars once to avoid repeating flags:
 ```bash
 export LIVEKIT_URL=http://localhost:7880
@@ -111,9 +133,10 @@ livekit-cli list-egress
 livekit-cli stop-egress --egress-id <EGRESS_ID>
 ```
 
-### Troubleshooting
+## Troubleshooting
 - If audio fails to connect from remote clients, ensure ports 7881/TCP and 7882/UDP are reachable and NAT/ICE is configured in `livekit.yaml` for public deployments.
 - Verify `GOOGLE_APPLICATION_CREDENTIALS` points to a valid service account JSON and that Speech-to-Text/Text-to-Speech APIs are enabled.
 - Check `.env` is being loaded (the script calls `dotenv.load_dotenv(override=True)`).
+- **User inputs skipped**: If logs show "skipping user input, speech scheduling is paused", ensure no unnecessary `session.drain()` calls are present after greetings—the agent session should remain active to process inputs.
 
 
