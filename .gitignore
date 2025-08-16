@@ -1,0 +1,55 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+.venv/
+env/
+venv/
+ENV/
+pip-wheel-metadata/
+pip-log.txt
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Jupyter & data
+.ipynb_checkpoints/
+*.ipynb
+*.csv
+*.tsv
+*.parquet
+*.sqlite
+*.db
+
+# macOS
+.DS_Store
+.Spotlight-V100
+.Trashes
+
+# Node (if present)
+node_modules/
+
+# Local env & keys
+.env
+*.env.*
+*.secret*
+*.key
+*.pem
+*.crt
+*.p12
+*.json
+!package.json
+!tsconfig.json
+
+# Editor/IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+
