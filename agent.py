@@ -84,7 +84,7 @@ async def entrypoint(ctx: JobContext):
         return
 
     # start the agent once the call is active
-    await run_voice_pipeline_agent(ctx, participant, instructions)
+    await run_voice_pipeline_agent(ctx, participant, instructions, "Krunal")
 
 
 class CallAgent(Agent):
@@ -183,7 +183,7 @@ class CallAgent(Agent):
 
 
 async def run_voice_pipeline_agent(
-    ctx: JobContext, participant: rtc.RemoteParticipant, instructions: str
+    ctx: JobContext, participant: rtc.RemoteParticipant, instructions: str, name: str
 ):
     logger.info("starting voice pipeline agent")
 
@@ -201,7 +201,7 @@ async def run_voice_pipeline_agent(
 
     # greet to verify TTS path after pickup
     try:
-        await session.say("Hi, this is the scheduling assistant. I'm on the line now. How can I help you today?")
+        await session.say(f"Hi {name}, I am Dhwani from AI Entity. Are you interested in AI voice agents?")
     except Exception as e:
         logger.info(f"failed to send greeting: {e}")
 
