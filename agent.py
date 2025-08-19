@@ -114,7 +114,7 @@ class CallAgent(Agent):
 
         logger.info("Using Cartesia TTS")
         tts_impl = cartesia.TTS(
-            model="sonic-2",
+            model="sonic-2-2025-03-07",
             voice=cartesia_voice_id,
             language="en",
             speed=1.0,
@@ -125,7 +125,7 @@ class CallAgent(Agent):
             instructions=instructions,
             vad=silero.VAD.load(),
             stt=stt_impl,
-            llm=google.LLM(model="gemini-2.5-flash", temperature=0.7),
+            llm=google.LLM(model="gemini-2.5-flash-lite", temperature=1.2),
             tts=tts_impl,
         )
 
