@@ -7,6 +7,10 @@ import logging
 from typing import Optional
 import uvicorn
 from dotenv import load_dotenv
+import uuid
+
+# Import the function from call.py
+from call import create_explicit_dispatch
 
 # Load environment variables
 load_dotenv()
@@ -43,6 +47,14 @@ class CallResponse(BaseModel):
     status: str
     message: str
 
+class DispatchRequest(BaseModel):
+    phone_number: str
+
+class DispatchResponse(BaseModel):
+    status: str
+    message: str
+    dispatch_info: Optional[dict] = None
+
 class HealthResponse(BaseModel):
     status: str
     message: str
@@ -60,48 +72,56 @@ async def health_check():
 
 @app.post("/call", response_model=CallResponse)
 async def make_call(request: CallRequest, background_tasks: BackgroundTasks):
-    """Make an outbound call to the specified phone number"""
+    """Initiate an outbound call"""
+    call_id = str(uuid.uuid4())
+    
+    # Initialize call status
+    call_status[call_id] = {
+        "call_id": call_id,
+        "phone_number": request.phone_number,
+        "customer_name": request.customer_name,
+        "custom_instructions": request.custom_instructions,
+        "status": "initiated",
+        "message": "Call initiated"
+    }
+    
+    # Add background task to handle the call
+    background_tasks.add_task(
+        initiate_call,
+        call_id,
+        request.phone_number,
+        request.customer_name,
+        request.custom_instructions
+    )
+    
+    return CallResponse(
+        call_id=call_id,
+        status="initiated",
+        message="Call initiated successfully"
+    )
+
+@app.post("/dispatch", response_model=DispatchResponse)
+async def create_dispatch(request: DispatchRequest):
+    """Create an explicit dispatch for outbound calling"""
     try:
-        # Validate phone number format (basic validation)
-        if not request.phone_number or len(request.phone_number) < 10:
-            raise HTTPException(status_code=400, detail="Invalid phone number")
+        # Call the function from call.py
+        await create_explicit_dispatch(request.phone_number)
         
-        # Generate a unique call ID
-        import uuid
-        call_id = str(uuid.uuid4())
-        
-        # Store initial call status
-        call_status[call_id] = {
-            "status": "initiated",
-            "phone_number": request.phone_number,
-            "customer_name": request.customer_name,
-            "appointment_date": request.appointment_date,
-            "appointment_time": request.appointment_time,
-            "custom_instructions": request.custom_instructions
-        }
-        
-        # Start the call in the background
-        background_tasks.add_task(
-            initiate_call,
-            call_id,
-            request.phone_number,
-            request.customer_name,
-            request.appointment_date,
-            request.appointment_time,
-            request.custom_instructions
+        return DispatchResponse(
+            status="success",
+            message=f"Dispatch created successfully for {request.phone_number}",
+            dispatch_info={
+                "phone_number": request.phone_number,
+                "room_name": "outbound-caller-room",
+                "agent_name": "outbound-caller"
+            }
         )
-        
-        logger.info(f"Call initiated for {request.phone_number} with ID: {call_id}")
-        
-        return CallResponse(
-            call_id=call_id,
-            status="initiated",
-            message=f"Call to {request.phone_number} has been initiated"
-        )
-        
     except Exception as e:
-        logger.error(f"Error initiating call: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to initiate call: {str(e)}")
+        logger.error(f"Error creating dispatch: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to create dispatch: {str(e)}"
+        )
 
 @app.get("/call/{call_id}")
 async def get_call_status(call_id: str):
@@ -117,7 +137,6 @@ async def list_calls():
     return {"calls": call_status}
 
 async def initiate_call(call_id: str, phone_number: str, customer_name: str = None, 
-                       appointment_date: str = None, appointment_time: str = None, 
                        custom_instructions: str = None):
     """Background task to initiate the actual call using LiveKit"""
     try:

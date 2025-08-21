@@ -34,7 +34,7 @@ services:
 
   voice-agent-worker:
     build: .
-    command: python agent.py start
+    command: python agent.py dev
     environment:
       - LIVEKIT_URL=${LIVEKIT_URL}
       - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
